@@ -1,32 +1,124 @@
 
+alter session set "_ORACLE_SCRIPT" = TRUE;
+set serveroutput on;
 
-Procedimientos Almacenados
+--Creacion Tablas--
 
-////////Cursos
+CREATE TABLE cursos (
+    IdCurso INT PRIMARY KEY,
+    Nombre VARCHAR2(100),
+    Nivel VARCHAR2(20),
+    Modalidad VARCHAR2(20),
+    IdHorario INT,
+    FechaCreacion DATE,
+    FechaModificacion DATE,
+    IdModificacion INT
+);
 
-OBTENER
+CREATE TABLE roles (
+    IdRol NUMBER PRIMARY KEY,
+    Nombre VARCHAR2(100),
+    FechaCreacion DATE,
+    FechaModificacion DATE
+);
 
-CREATE OR REPLACE PROCEDURE obtener_cursos (
-p_idcurso IN INT,
-p_nombre OUT VARCHAR2,
-p_nivel OUT VARCHAR2,
-p_modalidad OUT VARCHAR2,
-p_idhorario OUT INT,
-p_fecha_creacion OUT DATE,
-p_fecha_modificacion OUT DATE,
-p_id_modificacion OUT INT
+CREATE TABLE profesores (
+    IdProfesor INT PRIMARY KEY,
+    Nombre VARCHAR2(100),
+    Apellido VARCHAR2(100),
+    Correo VARCHAR2(100),
+    Telefono VARCHAR2(20),
+    IdStatus INT,
+    Cedula INT
+);
+
+CREATE TABLE usuarios (
+    IdUsuario INT,
+    Cedula INT,
+    Usuario VARCHAR2(20),
+    PwUsuario VARCHAR2(20),
+    IdRol INT,
+    IdModificacion INT,
+    IdStatus INT,
+    FechaModificacion DATE,
+    UltimaActividad DATE,
+    FechaCreacion DATE
+);
+
+
+--Inserts a tablas--
+
+INSERT INTO usuarios (IdUsuario, Cedula, Usuario, PwUsuario, UltimaActividad, IdRol, FechaModificacion, IdModificacion, IdStatus, FechaCreacion) VALUES
+(1, 116810507, 'emoreira', 'Temporal', '2023-02-22', 1, '2023-02-22', 1, 1, '2023-02-22');
+
+--Procesos Almacenados--
+
+select * from usuarios;
+
+CREATE OR REPLACE PROCEDURE obtener_usuario_y_idrol (
+    p_usuario IN VARCHAR2,
+    p_contrasena IN VARCHAR2,
+    p_idrol OUT NUMBER,
+    p_s_usuario OUT VARCHAR2
 )
 IS
 BEGIN
-SELECT Nombre, Nivel, Modalidad, IdHorario, FechaCreacion, FechaModificacion, IdModificacion
-INTO p_nombre, p_nivel, p_modalidad, p_idhorario, p_fecha_creacion, p_fecha_modificacion, p_id_modificacion
-FROM cursos
-WHERE IdCurso = p_idcurso;
-IF p_nombre IS NULL THEN
-    DBMS_OUTPUT.PUT_LINE('No se encontró ningún curso con el ID especificado.');
-ELSE
-    DBMS_OUTPUT.PUT_LINE('Nombre de curso: ' || p_nombre || ', Nivel: ' || p_nivel || ', Modalidad: ' || p_modalidad || ', ID de horario: ' || p_idhorario || ', Fecha de creación: ' || p_fecha_creacion || ', Fecha de modificación: ' || p_fecha_modificacion || ', ID de modificación: ' || p_id_modificacion);
-END IF;
+    SELECT idrol, usuario
+    INTO p_idrol, p_s_usuario
+    FROM usuarios
+    WHERE usuario = p_usuario AND pwusuario = p_contrasena;
+    
+    IF p_idrol IS NULL THEN
+        DBMS_OUTPUT.PUT_LINE('Nombre de usuario y/o contraseña inválidos');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Nombre de usuario: ' || p_s_usuario || ', ID de rol: ' || p_idrol);
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Nombre de usuario y/o contraseña inválidos');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Ocurrió un error al obtener el usuario y el ID de rol.');
+END;
+
+
+DECLARE
+    v_idrol usuarios.idrol%TYPE;
+    v_usuario usuarios.usuario%TYPE;
+BEGIN
+    obtener_usuario_y_idrol('emoreira', 'asd', v_idrol, v_usuario);
+END;
+
+---Cursos
+
+--CRUD OBTENER
+CREATE OR REPLACE PROCEDURE obtener_cursos (
+    p_idcurso IN INT,
+    p_nombre OUT VARCHAR2,
+    p_nivel OUT VARCHAR2,
+    p_modalidad OUT VARCHAR2,
+    p_idhorario OUT INT,
+    p_fecha_creacion OUT DATE,
+    p_fecha_modificacion OUT DATE,
+    p_id_modificacion OUT INT
+)
+IS
+BEGIN
+    SELECT Nombre, Nivel, Modalidad, IdHorario, FechaCreacion, FechaModificacion, IdModificacion
+    INTO p_nombre, p_nivel, p_modalidad, p_idhorario, p_fecha_creacion, p_fecha_modificacion, p_id_modificacion
+    FROM cursos
+    WHERE IdCurso = p_idcurso;
+    
+    IF p_nombre IS NULL THEN
+        DBMS_OUTPUT.PUT_LINE('No se encontró ningún curso con el ID especificado.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Nombre de curso: ' || p_nombre || ', Nivel: ' || p_nivel || ', Modalidad: ' || p_modalidad || ', ID de horario: ' || p_idhorario || ', Fecha de creación: ' || p_fecha_creacion || ', Fecha de modificación: ' || p_fecha_modificacion || ', ID de modificación: ' || p_id_modificacion);
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('No se encontró ningún curso con el ID especificado.');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('Ocurrió un error al obtener los datos del curso.');
+END;
 
 DECLARE
     v_idcurso cursos.IdCurso%TYPE := 1; -- Definimos el valor del ID del curso que queremos obtener
@@ -40,8 +132,7 @@ DECLARE
 BEGIN
     obtener_cursos(v_idcurso, v_nombre, v_nivel, v_modalidad, v_idhorario, v_fecha_creacion, v_fecha_modificacion, v_id_modificacion);
 END;
-
-INSERTAR
+--CRUD INSERTAR
 CREATE OR REPLACE PROCEDURE insertar_curso (
     p_IdCurso IN NUMBER,
     p_Nombre IN VARCHAR2,
@@ -71,8 +162,7 @@ DECLARE
 BEGIN
     insertar_curso(v_IdCurso, v_Nombre, v_Nivel, v_Modalidad, v_IdHorario, v_IdModificacion);
 END;
-
-ACTUALIZAR
+--CRUD ACTUALIZAR
 CREATE OR REPLACE PROCEDURE actualizar_curso (
     p_IdCurso IN NUMBER,
     p_Nombre IN VARCHAR2,
@@ -108,8 +198,7 @@ DECLARE
 BEGIN
     actualizar_curso(v_IdCurso, v_Nombre, v_Nivel, v_Modalidad, v_IdHorario, v_IdModificacion);
 END;
-
-ELIMINAR
+--CRUD ELIMINAR
 CREATE OR REPLACE PROCEDURE eliminar_curso (
     p_IdCurso IN NUMBER
 )
@@ -133,9 +222,8 @@ BEGIN
 END;
 
 
-/////////PROFESORES
-
-INSERTAR
+---PROFESORES
+--CRUD INSERTAR
 CREATE OR REPLACE PROCEDURE insertar_profesor (
 p_IdProfesor IN INT,
 p_Nombre IN VARCHAR2,
@@ -178,7 +266,7 @@ BEGIN
     
     insertar_profesor(p_IdProfesor, p_Nombre, p_Apellido, p_Correo, p_Telefono, p_IdStatus, p_Cedula);
 END;
-OBTENER
+--CRUD CONSULTAR
 CREATE OR REPLACE PROCEDURE obtener_profesores (
     p_IdProfesor IN INT DEFAULT NULL,
     p_Nombre IN VARCHAR2 DEFAULT NULL,
@@ -189,9 +277,7 @@ CREATE OR REPLACE PROCEDURE obtener_profesores (
     p_Cedula IN INT DEFAULT NULL
 )
 IS
-    cursor c_profesores is
-        select *
-        from profesores
+    cursor c_profesores is select * from profesores
         where (p_IdProfesor is null or IdProfesor = p_IdProfesor)
         and (p_Nombre is null or Nombre = p_Nombre)
         and (p_Apellido is null or Apellido = p_Apellido)
@@ -209,7 +295,7 @@ EXCEPTION
 END;
 
 EXEC obtener_profesores(p_IdProfesor => 1);
-ELIMINAR
+--CRUD ELIMIAR
 CREATE OR REPLACE PROCEDURE eliminar_profesores (
     p_IdProfesor IN INT
 )
@@ -225,8 +311,7 @@ EXCEPTION
 END;
 
 EXEC eliminar_profesores(p_IdProfesor => 1);
-
-ACTUALIZAR
+--CRUD ACTALIZAR
 CREATE OR REPLACE PROCEDURE actualizar_profesor (
     p_IdProfesor IN INT,
     p_Nombre IN VARCHAR2,
@@ -277,9 +362,8 @@ BEGIN
 END;
 
 
-/////////ROLES
-
-OBTENER
+----ROLES
+--CRUD CONSULTAR
 CREATE OR REPLACE PROCEDURE obtener_datos_rol(
 p_idrol IN NUMBER,
 p_nombre OUT VARCHAR2,
@@ -314,8 +398,7 @@ v_idrol := 1; -- se asigna el ID del rol que se desea obtener
 obtener_datos_rol(p_idrol => v_idrol, p_nombre => v_nombre, p_fecha_creacion => v_fecha_creacion, p_fecha_modificacion => v_fecha_modificacion);
 -- aquí puedes hacer lo que desees con las variables que contienen los datos del rol
 END;
-
-INSERTAR
+--CRUD INSERTAR
 CREATE OR REPLACE PROCEDURE insertar_rol(
 p_idrol IN NUMBER,
 p_nombre IN VARCHAR2,
@@ -341,8 +424,7 @@ v_fecha_modificacion roles.FechaModificacion%TYPE := SYSDATE;
 BEGIN
 insertar_rol(p_idrol => v_idrol, p_nombre => v_nombre, p_fecha_creacion => v_fecha_creacion, p_fecha_modificacion => v_fecha_modificacion);
 END;
-
-ACTUALIZAR
+--CRUD ACTUALIZAR
 CREATE OR REPLACE PROCEDURE actualizar_roles(
 p_idrol IN INT,
 p_nombre IN VARCHAR2,
@@ -365,8 +447,7 @@ v_nombre roles.Nombre%TYPE := 'Nuevo nombre'; -- Valor de ejemplo, reemplazar po
 BEGIN
 actualizar_roles(v_idrol, v_nombre);
 END;
-
-ELIMINAR
+--CRUD ELIMINAR
 CREATE OR REPLACE PROCEDURE eliminar_roles(
 p_idrol IN INT
 )
@@ -386,9 +467,9 @@ BEGIN
 eliminar_roles(v_idrol);
 END;
 
-//////USUARIOS
 
-OBTENER
+--USUARIOS
+--CRUD CONSULTAR
 CREATE OR REPLACE PROCEDURE obtener_usuario_y_idrol (
     p_usuario IN VARCHAR2,
     p_contrasena IN VARCHAR2,
@@ -414,14 +495,13 @@ EXCEPTION
         DBMS_OUTPUT.PUT_LINE('Ocurrió un error al obtener el usuario y el ID de rol.');
 END;
 
-
 DECLARE
     v_idrol usuarios.idrol%TYPE;
     v_usuario usuarios.usuario%TYPE;
 BEGIN
     obtener_usuario_y_idrol('emoreira', 'Temporal', v_idrol, v_usuario);
 END;
-INSERTAR
+--CRUD INSERTAR
 CREATE OR REPLACE PROCEDURE insertar_usuario (
 p_IdUsuario IN INTEGER,
 p_Cedula IN INTEGER,
@@ -442,14 +522,13 @@ WHEN OTHERS THEN
 DBMS_OUTPUT.PUT_LINE('Ocurrió un error al insertar los datos del usuario.');
 END;
 
-
 DECLARE
 v_idrol usuarios.IdRol%TYPE;
 v_s_usuario usuarios.Usuario%TYPE;
 BEGIN
 insertar_usuario(1, 116810507, emoreira, Temporal, 1, 2023-02-22, 1);
 END;
-ACTUALIZAR
+--CRUD ACTUALIZAR
 CREATE OR REPLACE PROCEDURE actualizar_usuario (
 p_IdUsuario IN INTEGER,
 p_Cedula IN INTEGER,
@@ -489,7 +568,7 @@ v_IdStatus usuarios.IdStatus%TYPE := 2;
 BEGIN
 actualizar_usuario(v_IdUsuario, v_Cedula, v_Usuario, v_PwUsuario, v_IdRol, v_IdModificacion, v_IdStatus);
 END;
-ELIMINAR
+--CRUD ELIMINAR
 CREATE OR REPLACE PROCEDURE eliminar_usuario (
 p_IdUsuario IN INTEGER
 )
@@ -511,5 +590,3 @@ v_IdUsuario usuarios.IdUsuario%TYPE := 1;
 BEGIN
 eliminar_usuario(v_IdUsuario);
 END;
-
-
